@@ -1,0 +1,105 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://assets/shapes/exit_wall_rectangleshape2d.tres" type="Shape2D" id=1]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Line2D
+
+signal exited(body_id, body, body_shape, area_shape)
+
+class_name Ground
+
+export var displacement:float = 50.0
+export var iterations = 7
+export var start_height:float = 600.0
+export var end_height:float = 600.0
+
+var base_points:PoolVector2Array
+export var smooth:float = 1.1
+var current_displacement:float
+var max_points = 2000
+
+func set_params(start_height:float, end_height: float) -> Ground:
+  base_points = PoolVector2Array([
+    Vector2(0, start_height),
+    Vector2(GLOBAL.screensize.x, end_height)
+  ])
+  init_line()
+  return self
+
+func init_line():
+  current_displacement = displacement
+  points = PoolVector2Array()
+  add_point(base_points[0])
+  add_point(base_points[base_points.size()-1])
+
+  for i in range(iterations):
+    add_points()
+
+  return generate_infills()
+
+func generate_infills():
+  var infill_points:PoolVector2Array = PoolVector2Array([Vector2(0, 2048)])
+  infill_points.append_array(points)
+  infill_points.append(Vector2(GLOBAL.screensize.x, 2048))
+  $ground_infill.polygon = infill_points
+  $collision/polygon.polygon = infill_points
+
+
+func add_points():
+  var old_points = points
+  points = PoolVector2Array()
+  for i in range(old_points.size() - 1):
+    var midpoint = (old_points[i] + old_points[i+1]) / 2
+    midpoint.y += current_displacement * pow(-1.0, GLOBAL.RNG.randi() % 2)
+    add_point(old_points[i])
+    add_point(midpoint)
+  add_point(old_points[old_points.size()-1])
+  current_displacement *= pow(2.0, -smooth)
+
+func _on_exiting_body_shape_exited(body_id, body, body_shape, area_shape):
+  emit_signal(\"exited\", body_id, body, body_shape, area_shape)
+"
+
+[node name="ground" type="Line2D"]
+points = PoolVector2Array( 0, 600, 1280, 600 )
+default_color = Color( 0, 0, 0, 1 )
+texture_mode = 171139536
+joint_mode = 1
+begin_cap_mode = 2
+end_cap_mode = 2
+script = SubResource( 1 )
+
+[node name="collision" type="StaticBody2D" parent="."]
+
+[node name="polygon" type="CollisionPolygon2D" parent="collision"]
+polygon = PoolVector2Array( 0, 600, 1280, 600, 1280, 720, 0, 720 )
+
+[node name="ground_infill" type="Polygon2D" parent="."]
+color = Color( 0, 0, 0, 1 )
+polygon = PoolVector2Array( 0, 600, 0, 720, 1280, 720, 1280, 600 )
+
+[node name="exiting" type="Area2D" parent="."]
+collision_layer = 4
+
+[node name="left" type="CollisionShape2D" parent="exiting"]
+position = Vector2( 10, 0 )
+rotation = 1.5708
+shape = ExtResource( 1 )
+one_way_collision = true
+one_way_collision_margin = 10.0
+
+[node name="right" type="CollisionShape2D" parent="exiting"]
+position = Vector2( 1270, 0 )
+rotation = -1.5708
+shape = ExtResource( 1 )
+one_way_collision = true
+one_way_collision_margin = 10.0
+
+[node name="debug" type="Label" parent="."]
+margin_left = 604.444
+margin_top = 440.143
+margin_right = 608.444
+margin_bottom = 468.143
+
+[connection signal="body_shape_exited" from="exiting" to="." method="_on_exiting_body_shape_exited"]

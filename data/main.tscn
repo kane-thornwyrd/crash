@@ -1,0 +1,42 @@
+[gd_scene load_steps=5 format=2]
+
+[ext_resource path="res://assets/main_theme.tres" type="Theme" id=1]
+[ext_resource path="res://data/scenes/splash/splash.tscn" type="PackedScene" id=2]
+[ext_resource path="res://assets/music/Horror-NeverLookBack_loop.ogg" type="AudioStream" id=3]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Control
+
+export var next_scene:PackedScene
+onready var loading_thread = Thread.new()
+var next_scene_instance:Node
+
+func _ready() -> void:
+  next_scene_instance = next_scene.instance()
+  loading_thread.start(self, \"load_data\", next_scene_instance)
+  splash_screen()
+
+func splash_screen() -> void:
+  print(\"Loading…\")
+  GLOBAL.load_resources()
+  add_child(next_scene_instance)
+
+func load_data(nsi:Node) -> int:
+  GLOBAL.load_resources()
+  nsi.is_loading = false
+  return 0
+"
+
+[node name="main" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+mouse_default_cursor_shape = 2
+theme = ExtResource( 1 )
+script = SubResource( 1 )
+next_scene = ExtResource( 2 )
+
+[node name="main_music" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource( 3 )
+autoplay = true
+

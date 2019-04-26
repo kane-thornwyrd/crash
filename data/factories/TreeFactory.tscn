@@ -1,0 +1,130 @@
+[gd_scene load_steps=11 format=2]
+
+[ext_resource path="res://assets/images/trees/image1351.png" type="Texture" id=1]
+[ext_resource path="res://assets/images/trees/path1309.png" type="Texture" id=2]
+[ext_resource path="res://assets/images/trees/path1311.png" type="Texture" id=3]
+[ext_resource path="res://assets/images/trees/path1313.png" type="Texture" id=4]
+[ext_resource path="res://assets/images/trees/path1315.png" type="Texture" id=5]
+[ext_resource path="res://assets/images/trees/path1317.png" type="Texture" id=6]
+[ext_resource path="res://assets/images/trees/path1319.png" type="Texture" id=7]
+[ext_resource path="res://assets/images/trees/path1321.png" type="Texture" id=8]
+[ext_resource path="res://assets/images/trees/tree-1702029_960_720.png" type="Texture" id=9]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Node
+
+func generate_tree(index:int, x:float, y:float, modulate:Color) -> Node2D:
+  var newT = get_child(index).duplicate() as CanvasItem
+  newT.name = str(\"tree_type_\", index)
+  newT.set_name(str(\"tree_type_\", index))
+  newT.position = Vector2(x,y)
+  newT.modulate = modulate
+  return newT as Node2D
+"
+
+[node name="TreeFactory" type="Node"]
+script = SubResource( 1 )
+
+[node name="tree1" type="Node2D" parent="."]
+editor/display_folded = true
+position = Vector2( 1070.26, 1196.86 )
+scale = Vector2( 0.5, 0.5 )
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Sprite" type="Sprite" parent="tree1"]
+position = Vector2( 8.65747, -16.418 )
+scale = Vector2( 0.491517, 0.491517 )
+texture = ExtResource( 1 )
+offset = Vector2( -8.65747, 16.418 )
+
+[node name="tree2" type="Node2D" parent="."]
+editor/display_folded = true
+position = Vector2( 2632.07, 748.272 )
+scale = Vector2( 0.2, 0.2 )
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Sprite" type="Sprite" parent="tree2"]
+texture = ExtResource( 2 )
+
+[node name="tree3" type="Node2D" parent="."]
+editor/display_folded = true
+position = Vector2( 3809.45, 854.702 )
+scale = Vector2( 0.2, 0.2 )
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Sprite" type="Sprite" parent="tree3"]
+texture = ExtResource( 3 )
+
+[node name="tree4" type="Node2D" parent="."]
+editor/display_folded = true
+position = Vector2( 4604.77, 715.883 )
+scale = Vector2( 0.2, 0.2 )
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Sprite" type="Sprite" parent="tree4"]
+texture = ExtResource( 4 )
+
+[node name="tree5" type="Node2D" parent="."]
+editor/display_folded = true
+position = Vector2( 1104.37, 3064.32 )
+scale = Vector2( 0.2, 0.2 )
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Sprite" type="Sprite" parent="tree5"]
+texture = ExtResource( 5 )
+
+[node name="tree6" type="Node2D" parent="."]
+editor/display_folded = true
+position = Vector2( 1975.46, 3202.04 )
+scale = Vector2( 0.2, 0.2 )
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Sprite" type="Sprite" parent="tree6"]
+texture = ExtResource( 6 )
+
+[node name="tree7" type="Node2D" parent="."]
+editor/display_folded = true
+position = Vector2( 3555.83, 2994.72 )
+scale = Vector2( 0.2, 0.2 )
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Sprite" type="Sprite" parent="tree7"]
+texture = ExtResource( 7 )
+
+[node name="tree8" type="Node2D" parent="."]
+editor/display_folded = true
+position = Vector2( 2527.91, 1877.53 )
+scale = Vector2( 0.2, 0.2 )
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Sprite" type="Sprite" parent="tree8"]
+texture = ExtResource( 8 )
+
+[node name="tree9" type="Node2D" parent="."]
+editor/display_folded = true
+position = Vector2( 565.288, 3054.36 )
+scale = Vector2( 0.2, 0.2 )
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Sprite" type="Sprite" parent="tree9"]
+scale = Vector2( 5, 5 )
+texture = ExtResource( 9 )
+

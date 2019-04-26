@@ -1,0 +1,277 @@
+[gd_scene load_steps=9 format=2]
+
+[ext_resource path="res://icon.png" type="Texture" id=1]
+[ext_resource path="res://data/utils/raycaster.tscn" type="PackedScene" id=2]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends KinematicBody2D
+
+signal grounded_updated(is_grounded)
+
+const SLOPE_STOP = 64
+const DROP_THRU_BIT = 1
+
+var velocity:Vector2 = Vector2()
+var move_speed:int = 5 * GLOBAL.UNIT_SIZE
+var gravity
+var max_jump_velocity
+var min_jump_velocity
+var is_grounded:bool = false
+var is_jumping:bool = false
+
+var max_jump_height = 4.5 * GLOBAL.UNIT_SIZE
+var min_jump_height = 0.8 * GLOBAL.UNIT_SIZE
+var jump_duration = 0.5
+
+onready var collider = $physics_shape
+onready var raycaster = $raycaster
+onready var anim_player = $anim_player
+onready var model:Node2D = $godoty
+onready var debug_text = $debug
+
+func _ready():
+  gravity = 2 * max_jump_height / pow(jump_duration, 2.0)
+  max_jump_velocity = -sqrt(2 * gravity * max_jump_height)
+  min_jump_velocity = -sqrt(2 * gravity * min_jump_height)
+
+func _physics_process(delta):
+  _get_input()
+  velocity.y += gravity * delta
+
+  if is_jumping and velocity.y >= 0:
+    is_jumping = false
+
+  var snap = Vector2.DOWN * 32 if !is_jumping else Vector2.ZERO
+  velocity = move_and_slide_with_snap(velocity, snap, Vector2.UP)
+
+  var was_grounded = is_grounded
+
+  is_grounded = !is_jumping && _check_is_grounded()
+
+  if was_grounded == null || is_grounded != was_grounded:
+    emit_signal(\"grounded_updated\", is_grounded)
+
+  _assign_animation()
+  debug_text.text = str(position.y)
+
+func _input(event):
+  if event.is_action_pressed(\"jump\") && is_grounded:
+    if Input.is_action_pressed(\"move_down\"):
+      if _check_is_grounded():
+        set_collision_mask_bit(DROP_THRU_BIT, false)
+    else:
+      velocity.y = max_jump_velocity
+      is_jumping = true
+
+  if event.is_action_released(\"jump\") && velocity.y < min_jump_velocity:
+    velocity.y = min_jump_velocity
+
+func _check_is_grounded():
+  return is_on_floor()
+
+func _get_h_weight():
+  return 0.2 if is_grounded else 0.1
+
+func _get_input():
+  var move_direction = -int(Input.is_action_pressed(\"move_left\")) + int(Input.is_action_pressed(\"move_right\"))
+  velocity.x = lerp( velocity.x, move_speed * move_direction, _get_h_weight() )
+  if move_direction != 0:
+#warning-ignore:return_value_discarded
+    model.transform.scaled(Vector2(move_direction, 0.0))
+
+func _assign_animation():
+  var anim = \"rest\"
+
+  if !is_grounded:
+    anim = \"jump\"
+  elif velocity.x != 0:
+    anim = \"walk\"
+
+  if anim_player.assigned_animation != anim:
+    anim_player.play(anim)
+
+
+#warning-ignore:unused_argument
+func _on_Area2D_body_exited(body):
+  set_collision_mask_bit(DROP_THRU_BIT, true)
+"
+
+[sub_resource type="Animation" id=2]
+tracks/0/type = "bezier"
+tracks/0/path = NodePath(".:position:x")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"points": PoolRealArray( 0, -0.25, 0, 0.25, 0, 0, -0.25, 0, 0.25, 0, 0, -0.25, 0, 0.25, 0 ),
+"times": PoolRealArray( 0, 0.5, 1 )
+}
+tracks/1/type = "bezier"
+tracks/1/path = NodePath(".:position:y")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"points": PoolRealArray( 15, -0.25, 0, 0.25, 0, -20, -0.25, 0, 0.25, 0, 0, -0.25, 0, 0.25, 0 ),
+"times": PoolRealArray( 0, 0.5, 1 )
+}
+tracks/2/type = "bezier"
+tracks/2/path = NodePath(".:scale:x")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/keys = {
+"points": PoolRealArray( 1.4, -0.25, 0, 0.25, 0, 0.7, -0.25, 0, 0.25, 0, 1, -0.25, 0, 0.25, 0 ),
+"times": PoolRealArray( 0, 0.5, 1 )
+}
+tracks/3/type = "bezier"
+tracks/3/path = NodePath(".:scale:y")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = {
+"points": PoolRealArray( 0.4, -0.25, 0, 0.25, 0, 1.1, -0.25, 0, 0.25, 0, 1, -0.25, 0, 0.25, 0 ),
+"times": PoolRealArray( 0, 0.5, 1 )
+}
+
+[sub_resource type="Animation" id=3]
+loop = true
+tracks/0/type = "bezier"
+tracks/0/path = NodePath(".:position:x")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"points": PoolRealArray( 0, -0.25, 0, 0.25, 0, 0, -0.25, 0, 0.25, 0, 0, -0.25, 0, 0.25, 0 ),
+"times": PoolRealArray( 0, 0.5, 1 )
+}
+tracks/1/type = "bezier"
+tracks/1/path = NodePath(".:position:y")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"points": PoolRealArray( 0, -0.25, 0, 0.25, 0, -10, -0.25, 0, 0.25, 0, 0, -0.25, 0, 0.25, 0 ),
+"times": PoolRealArray( 0, 0.5, 1 )
+}
+tracks/2/type = "bezier"
+tracks/2/path = NodePath(".:scale:x")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/keys = {
+"points": PoolRealArray( 1, -0.25, 0, 0.25, 0, 0.9, -0.25, 0, 0.25, 0, 1, -0.25, 0, 0.25, 0 ),
+"times": PoolRealArray( 0, 0.5, 1 )
+}
+tracks/3/type = "bezier"
+tracks/3/path = NodePath(".:scale:y")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = {
+"points": PoolRealArray( 1, -0.25, 0, 0.25, 0, 1.1, -0.25, 0, 0.25, 0, 1, -0.25, 0, 0.25, 0 ),
+"times": PoolRealArray( 0, 0.5, 1 )
+}
+
+[sub_resource type="Animation" id=4]
+loop = true
+tracks/0/type = "bezier"
+tracks/0/path = NodePath(".:position:x")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"points": PoolRealArray( 0, -0.25, 0, 0.25, 0, 0, -0.25, 0, 0.25, 0, 0, -0.25, 0, 0.25, 0 ),
+"times": PoolRealArray( 0, 0.5, 1 )
+}
+tracks/1/type = "bezier"
+tracks/1/path = NodePath(".:position:y")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"points": PoolRealArray( 0, -0.25, 0, 0.25, 0, -10, -0.25, 0, 0.25, 0, 0, -0.25, 0, 0.25, 0 ),
+"times": PoolRealArray( 0, 0.5, 1 )
+}
+tracks/2/type = "bezier"
+tracks/2/path = NodePath(".:scale:x")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/keys = {
+"points": PoolRealArray( 1, -0.25, 0, 0.25, 0, 0.9, -0.25, 0, 0.25, 0, 1, -0.25, 0, 0.25, 0 ),
+"times": PoolRealArray( 0, 0.5, 1 )
+}
+tracks/3/type = "bezier"
+tracks/3/path = NodePath(".:scale:y")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = {
+"points": PoolRealArray( 1, -0.25, 0, 0.25, 0, 1.1, -0.25, 0, 0.25, 0, 1, -0.25, 0, 0.25, 0 ),
+"times": PoolRealArray( 0, 0.5, 1 )
+}
+
+[sub_resource type="RectangleShape2D" id=5]
+extents = Vector2( 25, 24 )
+
+[sub_resource type="GDScript" id=6]
+script/source = "extends Camera2D
+
+func _ready():
+  pass
+
+
+func _on_player_grounded_updated(is_grounded):
+  drag_margin_v_enabled = not is_grounded
+"
+
+[node name="player" type="KinematicBody2D"]
+script = SubResource( 1 )
+
+[node name="anim_player" type="AnimationPlayer" parent="."]
+root_node = NodePath("../godoty")
+anims/jump = SubResource( 2 )
+anims/rest = SubResource( 3 )
+anims/walk = SubResource( 4 )
+
+[node name="godoty" type="Polygon2D" parent="."]
+offset = Vector2( -31.9723, -32.3077 )
+texture = ExtResource( 1 )
+polygon = PoolVector2Array( 12.5, 15.5, 16.25, 17.5, 19, 15.75, 19.75, 10.25, 27.75, 7.5, 30, 12, 34.25, 12.5, 35.5, 7.75, 44.5, 10.75, 44.25, 16.5, 47, 18, 52.5, 16, 57.75, 23, 53.75, 28.5, 53.75, 46.25, 50, 51.25, 45, 54, 36.75, 55.25, 28.5, 55.5, 20.25, 54.25, 15, 51.5, 9.75, 46.5, 10.75, 28.25, 7, 22.5 )
+uv = PoolVector2Array( 12.5, 15.5, 16.25, 17.5, 19, 15.75, 19.75, 10.25, 27.75, 7.5, 30, 12, 34.25, 12.5, 35.5, 7.75, 44.5, 10.75, 44.25, 16.5, 47, 18, 52.5, 16, 57.75, 23, 53.75, 28.5, 53.75, 46.25, 50, 51.25, 45, 54, 36.75, 55.25, 28.5, 55.5, 20.25, 54.25, 15, 51.5, 9.75, 46.5, 10.75, 28.25, 7, 22.5 )
+
+[node name="physics_shape" type="CollisionShape2D" parent="."]
+shape = SubResource( 5 )
+
+[node name="raycaster" parent="." instance=ExtResource( 2 )]
+position = Vector2( 0, 15 )
+scale = Vector2( 2, 1 )
+buffer_size = 6
+
+[node name="debug" type="Label" parent="."]
+margin_top = -52.6431
+margin_right = 4.0
+margin_bottom = -24.6431
+
+[node name="Camera2D" type="Camera2D" parent="."]
+current = true
+smoothing_enabled = true
+drag_margin_top = 0.75
+script = SubResource( 6 )
+
+[node name="shift_tween" type="Tween" parent="Camera2D"]
+
+[connection signal="grounded_updated" from="." to="Camera2D" method="_on_player_grounded_updated"]

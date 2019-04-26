@@ -1,0 +1,58 @@
+[gd_scene load_steps=2 format=2]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Node2D
+
+var skin_width:float = 1
+
+export var buffer_size:int = 3 setget set_buffer_size
+var buffer:Array = []
+
+func _ready() -> void:
+  set_buffer_size(buffer_size)
+
+func raycast(direction:Vector2, rect:RectangleShape2D, mask, exceptions:Array=[], ray_length:int=14, buffer:Array=self.buffer) -> Dictionary:
+  if not [GLOBAL.UP,GLOBAL.DOWN,GLOBAL.LEFT,GLOBAL.RIGHT].has(direction): return {buffer=[], count=0};
+
+  var space_state = get_world_2d().direct_space_state
+  var rect_extends = rect.extents - Vector2(skin_width, skin_width)
+  var count:int = 0
+  var ray_count:int = buffer.size()
+  var cast_to:Vector2 = (ray_length + skin_width) * direction
+  var origin:Vector2
+  var spacing
+
+  if [GLOBAL.UP,GLOBAL.DOWN].has(direction):
+    spacing = rect_extends.x * 2 / (ray_count - 1)
+  else:
+    spacing = rect_extends.y * 2 / (ray_count - 1)
+
+  for i in range(ray_count):
+    if [GLOBAL.UP,GLOBAL.DOWN].has(direction):
+      origin = Vector2(-rect_extends.x + spacing * i, rect_extends.y)
+      if direction == GLOBAL.UP:
+        origin.y *= -1
+    else:
+      origin = Vector2(rect_extends.x, -rect_extends.y + spacing * i)
+      if direction == GLOBAL.LEFT:
+        origin.x *= -1
+
+    var result = space_state.intersect_ray(
+      global_position + origin, global_position + origin + cast_to, exceptions, mask
+    )
+    if result:
+      buffer[count] = result
+      count += 1
+
+  return {buffer = buffer, count = count}
+
+
+
+func set_buffer_size(size:int) -> void:
+  buffer_size = max(float(size), 2.0) as int
+  buffer.resize(buffer_size)
+"
+
+[node name="raycaster" type="Node2D"]
+script = SubResource( 1 )
+

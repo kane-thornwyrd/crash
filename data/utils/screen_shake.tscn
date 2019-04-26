@@ -1,0 +1,58 @@
+[gd_scene load_steps=2 format=2]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Node
+
+const TRANSITION = Tween.TRANS_BOUNCE
+const EASE = Tween.EASE_OUT
+
+var amplitude:float = 0
+var priority:int = 0
+
+onready var camera:Camera2D
+
+func start(duration:float=0.2, freq:float=15.0, amp:int=16, prio:int=0):
+  if prio >= self.priority:
+    self.priority = prio
+    self.amplitude = amp
+    $duration.wait_time = duration
+    $frequency.wait_time = 1/freq
+    $duration.start()
+    _new_shake()
+
+func _new_shake():
+  var rand = Vector2(
+    GLOBAL.RNG.randf_range(-amplitude, amplitude),
+    GLOBAL.RNG.randf_range(-amplitude, amplitude)
+  )
+  $shake_tween.interpolate_property(
+    camera, \"offset\", camera.offset, rand, $frequency.wait_time, TRANSITION, EASE
+  )
+  $shake_tween.start()
+
+func _reset():
+  $shake_tween.interpolate_property(
+    camera, \"offset\", camera.offset, Vector2(), $frequency.wait_time, TRANSITION, EASE
+  )
+  $shake_tween.start()
+  self.priority = 0
+
+func _on_frequency_timeout():
+  _new_shake()
+
+func _on_duration_timeout():
+  $frequency.stop()
+"
+
+[node name="screen_shake" type="Node"]
+script = SubResource( 1 )
+
+[node name="shake_tween" type="Tween" parent="."]
+
+[node name="frequency" type="Timer" parent="."]
+
+[node name="duration" type="Timer" parent="."]
+one_shot = true
+
+[connection signal="timeout" from="frequency" to="." method="_on_frequency_timeout"]
+[connection signal="timeout" from="duration" to="." method="_on_duration_timeout"]
