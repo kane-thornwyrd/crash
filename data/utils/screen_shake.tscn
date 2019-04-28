@@ -9,7 +9,8 @@ const EASE = Tween.EASE_OUT
 var amplitude:float = 0
 var priority:int = 0
 
-onready var camera:Camera2D
+export var camera_path:NodePath
+onready var camera:Camera2D = get_node(camera_path)
 
 func start(duration:float=0.2, freq:float=15.0, amp:int=16, prio:int=0):
   if prio >= self.priority:
@@ -22,8 +23,8 @@ func start(duration:float=0.2, freq:float=15.0, amp:int=16, prio:int=0):
 
 func _new_shake():
   var rand = Vector2(
-    GLOBAL.RNG.randf_range(-amplitude, amplitude),
-    GLOBAL.RNG.randf_range(-amplitude, amplitude)
+    rand_range(-amplitude, amplitude),
+    rand_range(-amplitude, amplitude)
   )
   $shake_tween.interpolate_property(
     camera, \"offset\", camera.offset, rand, $frequency.wait_time, TRANSITION, EASE

@@ -20,7 +20,6 @@ var screensize = Vector2(ProjectSettings.get_setting("display/window/size/width"
 func _ready():
   RNG = RandomNumberGenerator.new()
   RNG.set_seed(654281684130531)
-  RNG.randomize()
 
 #  print(nsi.get_tree().call_group("redot", "get_default_state"))
   redot_instance = Redot.new( funcref(self,"main_reducer"), State.new({}))

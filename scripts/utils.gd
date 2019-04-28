@@ -51,3 +51,23 @@ static func array_shift(array:Array, shifting:int) -> Array:
     for item in range(0, arr_size - true_shift):
       output.append(array_copy[item])
   return output
+
+
+
+class polygon2D_sorter:
+  static func min_x(a, b):
+    if a.x < b.x:
+      return true
+    return false
+  static func min_y(a, b):
+    if a.y < b.y:
+      return true
+    return false
+  static func max_x(a, b):
+    if a.x > b.x:
+      return true
+    return false
+  static func max_y(a, b):
+    if a.y > b.y:
+      return true
+    return false

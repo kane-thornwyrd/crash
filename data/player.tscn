@@ -1,7 +1,15 @@
-[gd_scene load_steps=9 format=2]
+[gd_scene load_steps=23 format=2]
 
-[ext_resource path="res://icon.png" type="Texture" id=1]
-[ext_resource path="res://data/utils/raycaster.tscn" type="PackedScene" id=2]
+[ext_resource path="res://assets/images/heroin/rest_left.png" type="Texture" id=1]
+[ext_resource path="res://assets/images/heroin/rest_right.png" type="Texture" id=2]
+[ext_resource path="res://assets/images/heroin/run_right1.png" type="Texture" id=3]
+[ext_resource path="res://assets/images/heroin/run_right2.png" type="Texture" id=4]
+[ext_resource path="res://assets/images/heroin/run_right3.png" type="Texture" id=5]
+[ext_resource path="res://assets/images/heroin/run_left1.png" type="Texture" id=6]
+[ext_resource path="res://assets/images/heroin/run_left2.png" type="Texture" id=7]
+[ext_resource path="res://assets/images/heroin/run_left3.png" type="Texture" id=8]
+[ext_resource path="res://data/utils/raycaster.tscn" type="PackedScene" id=9]
+[ext_resource path="res://data/utils/screen_shake.tscn" type="PackedScene" id=10]
 
 [sub_resource type="GDScript" id=1]
 script/source = "extends KinematicBody2D
@@ -19,20 +27,23 @@ var min_jump_velocity
 var is_grounded:bool = false
 var is_jumping:bool = false
 
-var max_jump_height = 4.5 * GLOBAL.UNIT_SIZE
+var max_jump_height = 2.5 * GLOBAL.UNIT_SIZE
 var min_jump_height = 0.8 * GLOBAL.UNIT_SIZE
 var jump_duration = 0.5
 
 onready var collider = $physics_shape
 onready var raycaster = $raycaster
-onready var anim_player = $anim_player
+onready var anim_player:AnimatedSprite = $godoty
 onready var model:Node2D = $godoty
 onready var debug_text = $debug
+
+var _previous_anim
 
 func _ready():
   gravity = 2 * max_jump_height / pow(jump_duration, 2.0)
   max_jump_velocity = -sqrt(2 * gravity * max_jump_height)
   min_jump_velocity = -sqrt(2 * gravity * min_jump_height)
+  self.connect(\"grounded_updated\", self, \"hero_landing\")
 
 func _physics_process(delta):
   _get_input()
@@ -42,17 +53,17 @@ func _physics_process(delta):
     is_jumping = false
 
   var snap = Vector2.DOWN * 32 if !is_jumping else Vector2.ZERO
-  velocity = move_and_slide_with_snap(velocity, snap, Vector2.UP)
+  velocity = move_and_slide_with_snap(velocity, snap, Vector2.UP, true, 2, 0.99, false )
+
 
   var was_grounded = is_grounded
 
   is_grounded = !is_jumping && _check_is_grounded()
 
-  if was_grounded == null || is_grounded != was_grounded:
-    emit_signal(\"grounded_updated\", is_grounded)
+  if was_grounded == null or is_grounded != was_grounded:
+    emit_signal(\"grounded_updated\", is_grounded, was_grounded)
 
   _assign_animation()
-  debug_text.text = str(position.y)
 
 func _input(event):
   if event.is_action_pressed(\"jump\") && is_grounded:
@@ -74,27 +85,41 @@ func _get_h_weight():
 
 func _get_input():
   var move_direction = -int(Input.is_action_pressed(\"move_left\")) + int(Input.is_action_pressed(\"move_right\"))
-  velocity.x = lerp( velocity.x, move_speed * move_direction, _get_h_weight() )
+  var boost = 1.0 + lerp( 0, int(Input.is_action_pressed(\"sprint\")) * 2.0, _get_h_weight()*2 )
+  velocity.x = lerp( velocity.x, move_speed * move_direction * boost, _get_h_weight() )
+
+  velocity.x = 0 if move_direction == 0 and abs(velocity.x) < SLOPE_STOP else velocity.x
+
   if move_direction != 0:
 #warning-ignore:return_value_discarded
     model.transform.scaled(Vector2(move_direction, 0.0))
 
-func _assign_animation():
-  var anim = \"rest\"
+func _assign_animation(anim = \"rest_right\"):
+  if anim == \"rest_right\":
+    if !is_grounded:
+      anim = \"jump\"
+    elif velocity.x > 0.5:
+      anim = \"run_right\"
+    elif velocity.x < -0.5:
+      anim = \"run_left\"
 
-  if !is_grounded:
-    anim = \"jump\"
-  elif velocity.x != 0:
-    anim = \"walk\"
+#    if _previous_anim == \"run_left\":
+#      anim = \"rest_left\"
 
-  if anim_player.assigned_animation != anim:
+
+  debug_text.text = anim
+  if anim_player.get_animation() != anim:
+    _previous_anim = anim
     anim_player.play(anim)
 
 
 #warning-ignore:unused_argument
 func _on_Area2D_body_exited(body):
   set_collision_mask_bit(DROP_THRU_BIT, true)
-"
+
+func hero_landing(is_grounded, was_grounded):
+  if abs(velocity.x) > move_speed * 1.1 and is_grounded and !was_grounded:
+    $screen_shake.start(5.0, 2.0, 100.0)"
 
 [sub_resource type="Animation" id=2]
 tracks/0/type = "bezier"
@@ -182,6 +207,22 @@ tracks/3/keys = {
 }
 
 [sub_resource type="Animation" id=4]
+resource_name = "roll"
+loop = true
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.9 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ 0.0, 360.0 ]
+}
+
+[sub_resource type="Animation" id=5]
 loop = true
 tracks/0/type = "bezier"
 tracks/0/path = NodePath(".:position:x")
@@ -223,20 +264,112 @@ tracks/3/keys = {
 "points": PoolRealArray( 1, -0.25, 0, 0.25, 0, 1.1, -0.25, 0, 0.25, 0, 1, -0.25, 0, 0.25, 0 ),
 "times": PoolRealArray( 0, 0.5, 1 )
 }
+tracks/4/type = "value"
+tracks/4/path = NodePath(".:rotation_degrees")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ 0.0 ]
+}
 
-[sub_resource type="RectangleShape2D" id=5]
-extents = Vector2( 25, 24 )
+[sub_resource type="SpriteFrames" id=6]
+animations = [ {
+"frames": [ ExtResource( 1 ) ],
+"loop": true,
+"name": "rest_left",
+"speed": 5.0
+}, {
+"frames": [ ExtResource( 2 ) ],
+"loop": true,
+"name": "rest_right",
+"speed": 5.0
+}, {
+"frames": [ ExtResource( 3 ), ExtResource( 4 ), ExtResource( 5 ) ],
+"loop": true,
+"name": "run_right",
+"speed": 12.0
+}, {
+"frames": [ ExtResource( 6 ), ExtResource( 7 ), ExtResource( 8 ) ],
+"loop": true,
+"name": "run_left",
+"speed": 12.0
+} ]
 
-[sub_resource type="GDScript" id=6]
+[sub_resource type="RectangleShape2D" id=7]
+extents = Vector2( 5.03319, 13.6578 )
+
+[sub_resource type="GDScript" id=8]
 script/source = "extends Camera2D
 
-func _ready():
-  pass
+const LOOK_AHEAD_FACTOR = 0.45
+const SHIFT_TRANS = Tween.TRANS_SINE
+const SHIFT_EASE = Tween.EASE_OUT
+const SHIFT_DURATION = 0.5
 
+var facing = 0
+
+onready var prev_camera_position = get_camera_position()
+onready var tween = $shift_tween
+
+func _process(delta):
+  _check_facing()
+  prev_camera_position = get_camera_position()
+
+func _check_facing():
+  var new_facing = sign(get_camera_position().x - prev_camera_position.x)
+  if new_facing != 0 and facing != new_facing:
+    facing = new_facing
+    var target_offset = get_viewport_rect().size.x * facing * LOOK_AHEAD_FACTOR
+    tween.interpolate_property(self, \"position:x\", position.x, target_offset, SHIFT_DURATION, SHIFT_TRANS, SHIFT_EASE)
+    tween.start()
 
 func _on_player_grounded_updated(is_grounded):
   drag_margin_v_enabled = not is_grounded
 "
+
+[sub_resource type="Shader" id=9]
+code = "shader_type canvas_item;
+
+uniform sampler2D sceneTex;
+
+void fragment(){
+  vec2 iResolution = 1.0 / SCREEN_PIXEL_SIZE;
+  vec2 uv = vec2(FRAGCOORD.xy / iResolution.xy);
+//  vec4 c = texture(sceneTex, uv);
+//
+//  c += texture(sceneTex, uv+0.001);
+//  c += texture(sceneTex, uv+0.003);
+//  c += texture(sceneTex, uv+0.005);
+//  c += texture(sceneTex, uv+0.007);
+//  c += texture(sceneTex, uv+0.009);
+//  c += texture(sceneTex, uv+0.011);
+//
+//  c += texture(sceneTex, uv-0.001);
+//  c += texture(sceneTex, uv-0.003);
+//  c += texture(sceneTex, uv-0.005);
+//  c += texture(sceneTex, uv-0.007);
+//  c += texture(sceneTex, uv-0.009);
+//  c += texture(sceneTex, uv-0.011);
+  vec4 c = texture(SCREEN_TEXTURE, uv);
+  c.rgb = vec3((c.r+c.g+c.b)/3.0);
+  c = c / 9.5;
+  COLOR = c;
+}"
+
+[sub_resource type="ViewportTexture" id=10]
+viewport_path = NodePath("Viewport")
+
+[sub_resource type="ShaderMaterial" id=11]
+resource_local_to_scene = true
+shader = SubResource( 9 )
+shader_param/sceneTex = SubResource( 10 )
+
+[sub_resource type="QuadMesh" id=12]
 
 [node name="player" type="KinematicBody2D"]
 script = SubResource( 1 )
@@ -245,18 +378,18 @@ script = SubResource( 1 )
 root_node = NodePath("../godoty")
 anims/jump = SubResource( 2 )
 anims/rest = SubResource( 3 )
-anims/walk = SubResource( 4 )
+anims/roll = SubResource( 4 )
+anims/walk = SubResource( 5 )
 
-[node name="godoty" type="Polygon2D" parent="."]
-offset = Vector2( -31.9723, -32.3077 )
-texture = ExtResource( 1 )
-polygon = PoolVector2Array( 12.5, 15.5, 16.25, 17.5, 19, 15.75, 19.75, 10.25, 27.75, 7.5, 30, 12, 34.25, 12.5, 35.5, 7.75, 44.5, 10.75, 44.25, 16.5, 47, 18, 52.5, 16, 57.75, 23, 53.75, 28.5, 53.75, 46.25, 50, 51.25, 45, 54, 36.75, 55.25, 28.5, 55.5, 20.25, 54.25, 15, 51.5, 9.75, 46.5, 10.75, 28.25, 7, 22.5 )
-uv = PoolVector2Array( 12.5, 15.5, 16.25, 17.5, 19, 15.75, 19.75, 10.25, 27.75, 7.5, 30, 12, 34.25, 12.5, 35.5, 7.75, 44.5, 10.75, 44.25, 16.5, 47, 18, 52.5, 16, 57.75, 23, 53.75, 28.5, 53.75, 46.25, 50, 51.25, 45, 54, 36.75, 55.25, 28.5, 55.5, 20.25, 54.25, 15, 51.5, 9.75, 46.5, 10.75, 28.25, 7, 22.5 )
+[node name="godoty" type="AnimatedSprite" parent="."]
+rotation = 6.28318
+frames = SubResource( 6 )
+animation = "rest_right"
 
 [node name="physics_shape" type="CollisionShape2D" parent="."]
-shape = SubResource( 5 )
+shape = SubResource( 7 )
 
-[node name="raycaster" parent="." instance=ExtResource( 2 )]
+[node name="raycaster" parent="." instance=ExtResource( 9 )]
 position = Vector2( 0, 15 )
 scale = Vector2( 2, 1 )
 buffer_size = 6
@@ -266,12 +399,29 @@ margin_top = -52.6431
 margin_right = 4.0
 margin_bottom = -24.6431
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Viewport" type="Viewport" parent="."]
+transparent_bg = true
+msaa = 2
+
+[node name="screen_shake" parent="." instance=ExtResource( 10 )]
+camera_path = NodePath("../camera")
+
+[node name="camera" type="Camera2D" parent="."]
 current = true
+limit_smoothed = true
 smoothing_enabled = true
-drag_margin_top = 0.75
-script = SubResource( 6 )
+drag_margin_left = 0.01
+drag_margin_top = 0.44
+drag_margin_right = 0.01
+editor_draw_limits = true
+editor_draw_drag_margin = true
+script = SubResource( 8 )
 
-[node name="shift_tween" type="Tween" parent="Camera2D"]
+[node name="shift_tween" type="Tween" parent="camera"]
 
-[connection signal="grounded_updated" from="." to="Camera2D" method="_on_player_grounded_updated"]
+[node name="MeshInstance2D" type="MeshInstance2D" parent="camera"]
+material = SubResource( 11 )
+scale = Vector2( 2048, 2048 )
+mesh = SubResource( 12 )
+
+[connection signal="grounded_updated" from="." to="camera" method="_on_player_grounded_updated"]
