@@ -1,16 +1,20 @@
 extends Node
 
+
 func get_noop() -> FuncRef:
   return funcref(self, "noop")
 
+
 static func noop() -> void:
   pass
+
 
 static func print(obj):
   if obj is Object && obj.has_method("__print__"):
     print(obj.__print__())
   else:
     print(obj)
+
 
 static func array_shift_by_ref(array:Array, shifting:int) -> void:
   var array_copy = array.duplicate(true)
@@ -53,7 +57,6 @@ static func array_shift(array:Array, shifting:int) -> Array:
   return output
 
 
-
 class polygon2D_sorter:
   static func min_x(a, b):
     if a.x < b.x:
@@ -71,3 +74,22 @@ class polygon2D_sorter:
     if a.y > b.y:
       return true
     return false
+
+static func merge_dictionaries(dic1:Dictionary, dic2:Dictionary):
+  if dic1.size() == 0 and dic2.size() == 0: return dic1;
+
+  for key in dic2.keys():
+    if dic1.has(key):
+      if dic1[key] is Dictionary and dic2[key] is Dictionary:
+        merge_dictionaries(dic1[key], dic2[key])
+      elif dic1[key] is Array and dic2[key] is Array:
+        #warning-ignore:unused_variable
+        for i in range(dic2[key].size() - 1):
+          dic1[key].append(dic2[key].pop_front())
+      else:
+        dic1[key] = dic2[key]
+    else:
+      dic1[key] = dic2[key]
+
+#  for key in dic2.keys():
+#    if(dic1.has(key))

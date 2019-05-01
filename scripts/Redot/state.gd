@@ -3,7 +3,7 @@ extends Node
 ###############
 # CLASS State #
 ###############
-class_name State
+class_name State, "res://assets/images/redot/state.svg"
 
 const LAST_KEY = 0
 var _state:Dictionary
@@ -32,16 +32,15 @@ func _deep_get(path:PoolStringArray, obj:Dictionary, default):
   else:
     return _deep_get(path, obj[_prev_key], default)
 
-func set_value(path:String, value) -> void:
+func set_value(path:String, value) -> State:
   var _address:PoolStringArray = path.split(".", true)
   var new_state = _state.duplicate(true)
   _deep_set(_address, new_state, value)
   _state = new_state
+  return self
 
 func get_value(path:String, default = null):
-  var _address:PoolStringArray = path.split(".", true)
   var new_state = _state.duplicate(true)
+  if path.length() == 0: return new_state;
+  var _address:PoolStringArray = path.split(".", true)
   return _deep_get(_address, new_state, default)
-
-func clone() -> State:
-  return self._init(_state.duplicate(true))
